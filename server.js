@@ -8,7 +8,7 @@ const port = process.env.PORT || 5000;
 
 // ✅ Setup CORS properly
 app.use(cors({
-  origin: '*', // You can replace * with 'http://127.0.0.1:5500' for stricter security
+  origin: 'http://127.0.0.1:5500', // You can replace * with 'http://127.0.0.1:5500' for stricter security
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
