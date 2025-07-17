@@ -72,7 +72,7 @@
 
       const phone = document.getElementById("phone").value;
 
-      fetch("https://churchconference.onrender.com/api/stk", {
+      fetch("http://localhost:5000/api/stk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone }),
