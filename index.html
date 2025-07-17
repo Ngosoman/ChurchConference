@@ -1,50 +1,113 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Church Conference Payment</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Church Conference Registration</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 100px; }
-    input, button { padding: 10px; margin: 10px; font-size: 16px; }
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 1rem;
+    }
+
+    form {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    input {
+      padding: 0.8rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 0.9rem;
+      font-size: 1rem;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .message {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: #555;
+    }
   </style>
 </head>
 <body>
-  <h2>Pay for the Church Conference</h2>
-  <p>Amount: <strong>KES 500</strong></p>
 
+  <h1>Church Conference Payment</h1>
   <form id="payForm">
-    <input type="tel" id="phone" placeholder="Enter MPESA Phone (07XXXXXXXX)" required />
-    <br>
+    <input type="tel" id="phone" placeholder="Enter M-Pesa phone number e.g. 07XXXXXXXX" required />
     <button type="submit">Pay Now</button>
   </form>
 
-  <p id="status"></p>
+  <div class="message" id="message"></div>
 
   <script>
     const form = document.getElementById('payForm');
+    const messageDiv = document.getElementById('message');
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const phone = document.getElementById('phone').value;
-      document.getElementById('status').innerText = "Sending payment request...";
+      const phone = document.getElementById('phone').value.trim();
+
+      if (!phone.startsWith('07') && !phone.startsWith('01')) {
+        messageDiv.textContent = 'Please enter a valid Safaricom number';
+        return;
+      }
+
+      const fullPhone = phone.replace(/^0/, '254'); // Convert to international format
+
+      messageDiv.textContent = 'Processing payment...';
+
       try {
         const res = await fetch('https://your-backend-url.com/api/stk', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone })
+          body: JSON.stringify({ phone: fullPhone }),
         });
+
         const data = await res.json();
         if (data.success) {
-          document.getElementById('status').innerText = "Prompt sent! Complete on your phone...";
-          setTimeout(() => {
-            // Redirect to Google Form after 10s (or after payment check)
-            window.location.href = `https://forms.gle/your-form-id`;
-          }, 10000);
+          messageDiv.textContent = '✅ Check your phone and enter your M-Pesa PIN.';
+          // Optional: Redirect after successful prompt
+          // setTimeout(() => window.location.href = "https://forms.gle/...", 5000);
         } else {
-          document.getElementById('status').innerText = "Failed to initiate payment.";
+          messageDiv.textContent = '❌ ' + (data.message || 'Payment failed');
         }
       } catch (err) {
-        document.getElementById('status').innerText = "Something went wrong.";
+        messageDiv.textContent = '❌ Network error. Try again later.';
+        console.error(err);
       }
     });
   </script>
+
 </body>
 </html>
