@@ -4,64 +4,89 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+const port = process.env.PORT || 5000;
+
+// ✅ Setup CORS properly
+app.use(cors({
+  origin: '*', // You can replace * with 'http://127.0.0.1:5500' for stricter security
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+// Base64 Encode credentials
+const consumerKey = process.env.CONSUMER_KEY;
+const consumerSecret = process.env.CONSUMER_SECRET;
 
+const shortCode = '400200';
+const passkey = process.env.PASSKEY;
+const accountReference = '40064743';
+const callbackURL = 'https://mydomain.com/callback';
+
+// Get OAuth Token
+const getAccessToken = async () => {
+  const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+  try {
+    const res = await axios.get('https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials', {
+      headers: { Authorization: `Basic ${auth}` }
+    });
+    return res.data.access_token;
+  } catch (err) {
+    console.error('❌ Error fetching access token:', err.message);
+    return null;
+  }
+};
+
+// ✅ Handle preflight CORS OPTIONS
+app.options('/api/stk', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // or specify origin
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
+
+// STK Route
 app.post('/api/stk', async (req, res) => {
   const { phone } = req.body;
 
-  const timestamp = new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14);
-  const password = Buffer.from(
-    `${process.env.SHORTCODE}${process.env.PASSKEY}${timestamp}`
-  ).toString('base64');
+  const accessToken = await getAccessToken();
+  if (!accessToken) return res.status(500).json({ message: 'Failed to authenticate' });
+
+  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  const password = Buffer.from(`${shortCode}${passkey}${timestamp}`).toString('base64');
 
   try {
-    // Get Access Token
-    const tokenResponse = await axios.get(
-      'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-      {
-        headers: {
-          Authorization:
-            'Basic ' +
-            Buffer.from(
-              `${process.env.CONSUMER_KEY}:${process.env.CONSUMER_SECRET}`
-            ).toString('base64'),
-        },
+    const stkRes = await axios.post('https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest', {
+      BusinessShortCode: shortCode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: 'CustomerPayBillOnline',
+      Amount: 100,
+      PartyA: phone,
+      PartyB: shortCode,
+      PhoneNumber: phone,
+      CallBackURL: callbackURL,
+      AccountReference: accountReference,
+      TransactionDesc: 'Church Conference Registration'
+    }, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
       }
-    );
+    });
 
-    const access_token = tokenResponse.data.access_token;
-
-    // Initiate STK Push
-    const stkResponse = await axios.post(
-      'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
-      {
-        BusinessShortCode: process.env.SHORTCODE,
-        Password: password,
-        Timestamp: timestamp,
-        TransactionType: 'CustomerPayBillOnline',
-        Amount: 500,
-        PartyA: phone,
-        PartyB: process.env.SHORTCODE,
-        PhoneNumber: phone,
-        CallBackURL: 'https://yourdomain.com/api/callback', // can leave dummy
-        AccountReference: process.env.ACCOUNT_REF,
-        TransactionDesc: 'Church Conference Payment',
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-      }
-    );
-
-    res.json({ success: true, message: 'STK push sent', response: stkResponse.data });
-  } catch (error) {
-    console.error('Payment error:', error.message);
-    res.status(500).json({ success: false, message: 'Payment error', error: error.message });
+    res.status(200).json({ success: true, message: 'STK Push Sent ✅', data: stkRes.data });
+  } catch (err) {
+    console.error('❌ STK Error:', err.response?.data || err.message);
+    res.status(500).json({ success: false, message: 'STK Push Failed ❌', error: err.response?.data || err.message });
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Default route
+app.get('/', (req, res) => {
+  res.send('Church Conference Payment API Running ✅');
+});
+
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+});

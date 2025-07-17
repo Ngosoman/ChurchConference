@@ -88,7 +88,7 @@
       messageDiv.textContent = 'Processing payment...';
 
       try {
-        const res = await fetch('https://your-backend-url.com/api/stk', {
+        const res = await fetch('https://churchconference.onrender.com/api/stk', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone: fullPhone }),
