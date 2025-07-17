@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Church Conference Payment</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 100px; }
+    input, button { padding: 10px; margin: 10px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h2>Pay for the Church Conference</h2>
+  <p>Amount: <strong>KES 500</strong></p>
+
+  <form id="payForm">
+    <input type="tel" id="phone" placeholder="Enter MPESA Phone (07XXXXXXXX)" required />
+    <br>
+    <button type="submit">Pay Now</button>
+  </form>
+
+  <p id="status"></p>
+
+  <script>
+    const form = document.getElementById('payForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value;
+      document.getElementById('status').innerText = "Sending payment request...";
+      try {
+        const res = await fetch('https://your-backend-url.com/api/stk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('status').innerText = "Prompt sent! Complete on your phone...";
+          setTimeout(() => {
+            // Redirect to Google Form after 10s (or after payment check)
+            window.location.href = `https://forms.gle/your-form-id`;
+          }, 10000);
+        } else {
+          document.getElementById('status').innerText = "Failed to initiate payment.";
+        }
+      } catch (err) {
+        document.getElementById('status').innerText = "Something went wrong.";
+      }
+    });
+  </script>
+</body>
+</html>
