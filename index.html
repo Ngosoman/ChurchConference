@@ -3,109 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Church Conference Registration</title>
+  <title>Church Conference Payment</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      padding: 2rem;
+      font-family: Arial, sans-serif;
+      background-color: #f6f9fc;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
-
-    h1 {
-      color: #333;
-      margin-bottom: 1rem;
-    }
-
-    form {
-      background: #fff;
+    .container {
+      background: white;
       padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
       max-width: 400px;
+      width: 100%;
     }
-
+    h2 {
+      text-align: center;
+      color: #333;
+    }
     input {
-      padding: 0.8rem;
-      font-size: 1rem;
+      width: 100%;
+      padding: 0.7rem;
+      margin: 1rem 0;
       border: 1px solid #ccc;
-      border-radius: 4px;
+      border-radius: 6px;
     }
-
     button {
-      padding: 0.9rem;
-      font-size: 1rem;
+      width: 100%;
+      padding: 0.7rem;
       background-color: #28a745;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
+      font-weight: bold;
     }
-
     button:hover {
       background-color: #218838;
     }
-
-    .message {
-      margin-top: 1rem;
-      font-weight: bold;
-      color: #555;
+    .info {
+      font-size: 0.9rem;
+      color: #777;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <h1>Church Conference Payment</h1>
-  <form id="payForm">
-    <input type="tel" id="phone" placeholder="Enter M-Pesa phone number e.g. 07XXXXXXXX" required />
-    <button type="submit">Pay Now</button>
-  </form>
-
-  <div class="message" id="message"></div>
+  <div class="container">
+    <h2>Conference Registration</h2>
+    <form id="paymentForm">
+      <label for="phone">Enter your phone number (Safaricom - 2547...)</label>
+      <input type="tel" id="phone" name="phone" placeholder="e.g. 254712345678" required />
+      <button type="submit">Pay with M-Pesa</button>
+    </form>
+    <p class="info">You'll receive an M-Pesa prompt to complete payment</p>
+  </div>
 
   <script>
-    const form = document.getElementById('payForm');
-    const messageDiv = document.getElementById('message');
+    const form = document.getElementById("paymentForm");
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
-      const phone = document.getElementById('phone').value.trim();
 
-      if (!phone.startsWith('07') && !phone.startsWith('01')) {
-        messageDiv.textContent = 'Please enter a valid Safaricom number';
-        return;
-      }
+      const phone = document.getElementById("phone").value;
 
-      const fullPhone = phone.replace(/^0/, '254'); // Convert to international format
-
-      messageDiv.textContent = 'Processing payment...';
-
-      try {
-        const res = await fetch('https://churchconference.onrender.com/api/stk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: fullPhone }),
-        });
-
-        const data = await res.json();
+      fetch("https://churchconference.onrender.com/api/stk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      })
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
-          messageDiv.textContent = '✅ Check your phone and enter your M-Pesa PIN.';
-          // Optional: Redirect after successful prompt
-          // setTimeout(() => window.location.href = "https://forms.gle/...", 5000);
+          alert("✅ Payment prompt sent to your phone!");
         } else {
-          messageDiv.textContent = '❌ ' + (data.message || 'Payment failed');
+          console.error(data.error);
+          alert("❌ Error: " + (data.error?.errorMessage || "Unknown error"));
         }
-      } catch (err) {
-        messageDiv.textContent = '❌ Network error. Try again later.';
+      })
+      .catch((err) => {
         console.error(err);
-      }
+        alert("❌ Network Error: " + err.message);
+      });
     });
   </script>
 
